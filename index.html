@@ -1,0 +1,1864 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Google Fit Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #080d14;
+    --bg2: #0e1825;
+    --bg3: #14263a;
+    --card: #0f1e2d;
+    --card2: #162436;
+    --accent: #00e5b0;
+    --accent2: #00aaff;
+    --accent3: #ff6b6b;
+    --accent4: #ffd166;
+    --text: #e8f4f8;
+    --text2: #7ba8c0;
+    --text3: #3d6580;
+    --border: #1e3a52;
+    --mono: 'Space Mono', monospace;
+    --sans: 'DM Sans', sans-serif;
+    --r: 14px;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ─── SETUP / LOGIN ─── */
+  #setup-screen {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: radial-gradient(ellipse at 20% 50%, #002a40 0%, transparent 60%),
+                radial-gradient(ellipse at 80% 20%, #001a30 0%, transparent 50%),
+                var(--bg);
+    padding: 2rem;
+  }
+  .setup-container {
+    max-width: 700px;
+    width: 100%;
+  }
+  .logo-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 2.5rem;
+  }
+  .logo-icon {
+    width: 52px; height: 52px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border-radius: 14px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 26px;
+  }
+  .logo-text { font-family: var(--mono); font-size: 1.3rem; color: var(--accent); }
+  .setup-title {
+    font-family: var(--mono);
+    font-size: 2.2rem;
+    line-height: 1.15;
+    margin-bottom: 1rem;
+    background: linear-gradient(135deg, var(--text), var(--accent2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .setup-sub {
+    color: var(--text2);
+    font-size: 1.05rem;
+    line-height: 1.6;
+    margin-bottom: 2.5rem;
+  }
+  .steps-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    background: var(--border);
+    border-radius: var(--r);
+    overflow: hidden;
+    margin-bottom: 2rem;
+    border: 1px solid var(--border);
+  }
+  .step {
+    background: var(--card);
+    padding: 1.2rem 1.5rem;
+    display: flex;
+    gap: 1rem;
+    align-items: flex-start;
+    transition: background .2s;
+  }
+  .step:hover { background: var(--card2); }
+  .step-num {
+    font-family: var(--mono);
+    font-size: .75rem;
+    color: var(--accent);
+    background: rgba(0,229,176,.08);
+    border: 1px solid rgba(0,229,176,.25);
+    border-radius: 6px;
+    padding: 3px 8px;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+  .step-content h4 { font-size: .95rem; font-weight: 600; margin-bottom: .3rem; color: var(--text); }
+  .step-content p { font-size: .85rem; color: var(--text2); line-height: 1.5; }
+  .step-content a { color: var(--accent2); text-decoration: none; }
+  .step-content a:hover { text-decoration: underline; }
+  .step-content code {
+    font-family: var(--mono);
+    font-size: .78rem;
+    background: rgba(0,170,255,.08);
+    border: 1px solid rgba(0,170,255,.2);
+    padding: 2px 7px;
+    border-radius: 5px;
+    color: var(--accent2);
+  }
+  .client-id-section {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--r);
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+  .client-id-section label {
+    display: block;
+    font-family: var(--mono);
+    font-size: .75rem;
+    color: var(--accent);
+    margin-bottom: .6rem;
+    letter-spacing: .05em;
+  }
+  .client-id-section input {
+    width: 100%;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: .8rem 1rem;
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: .85rem;
+    outline: none;
+    transition: border-color .2s;
+    margin-bottom: 1rem;
+  }
+  .client-id-section input:focus { border-color: var(--accent2); }
+  .client-id-section input::placeholder { color: var(--text3); }
+  #signin-btn {
+    width: 100%;
+    padding: .9rem 1.5rem;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border: none;
+    border-radius: 10px;
+    color: #000;
+    font-family: var(--sans);
+    font-weight: 600;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: opacity .2s, transform .1s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+  #signin-btn:hover { opacity: .9; transform: translateY(-1px); }
+  #signin-btn:active { transform: translateY(0); }
+  #signin-btn:disabled { opacity: .4; cursor: not-allowed; transform: none; }
+  .error-msg {
+    background: rgba(255,107,107,.08);
+    border: 1px solid rgba(255,107,107,.3);
+    color: var(--accent3);
+    padding: .8rem 1rem;
+    border-radius: 8px;
+    font-size: .85rem;
+    margin-top: .8rem;
+    display: none;
+  }
+
+  /* ─── MAIN DASHBOARD ─── */
+  #dashboard { display: none; }
+  .topbar {
+    position: sticky; top: 0; z-index: 100;
+    background: rgba(8,13,20,.9);
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--border);
+    padding: .9rem 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .topbar-left { display: flex; align-items: center; gap: 12px; }
+  .topbar-logo { font-family: var(--mono); font-size: 1rem; color: var(--accent); }
+  .user-badge {
+    background: var(--card2);
+    border: 1px solid var(--border);
+    border-radius: 100px;
+    padding: .35rem .9rem .35rem .4rem;
+    display: flex; align-items: center; gap: 7px;
+    font-size: .8rem; color: var(--text2);
+  }
+  .user-avatar {
+    width: 26px; height: 26px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    display: flex; align-items: center; justify-content: center;
+    font-size: .8rem; font-weight: 700; color: #000;
+  }
+  .topbar-right { display: flex; align-items: center; gap: .8rem; }
+  .range-btn {
+    background: var(--card2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: .4rem .9rem;
+    color: var(--text2);
+    font-family: var(--sans);
+    font-size: .82rem;
+    cursor: pointer;
+    transition: all .15s;
+  }
+  .range-btn.active, .range-btn:hover {
+    background: rgba(0,229,176,.1);
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+  .signout-btn {
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: .4rem .9rem;
+    color: var(--text3);
+    font-size: .82rem;
+    cursor: pointer;
+    transition: all .15s;
+  }
+  .signout-btn:hover { border-color: var(--accent3); color: var(--accent3); }
+  .export-btn {
+    background: linear-gradient(135deg, rgba(0,229,176,.15), rgba(0,170,255,.1));
+    border: 1px solid rgba(0,229,176,.35);
+    border-radius: 8px;
+    padding: .4rem .9rem;
+    color: var(--accent);
+    font-size: .82rem;
+    font-family: var(--sans);
+    cursor: pointer;
+    display: flex; align-items: center; gap: 5px;
+    transition: all .2s;
+    font-weight: 500;
+  }
+  .export-btn:hover { background: rgba(0,229,176,.2); border-color: var(--accent); }
+  .export-btn:disabled { opacity: .4; cursor: not-allowed; }
+  /* ─── EXPORT PROGRESS ─── */
+  #export-toast {
+    position: fixed; bottom: 2rem; right: 2rem; z-index: 9999;
+    background: var(--card2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1rem 1.4rem;
+    display: none;
+    align-items: center;
+    gap: 1rem;
+    box-shadow: 0 20px 60px rgba(0,0,0,.5);
+    min-width: 280px;
+    animation: toastIn .25s ease;
+  }
+  #export-toast.show { display: flex; }
+  @keyframes toastIn { from { opacity:0; transform: translateY(10px); } to { opacity:1; transform: translateY(0); } }
+  .toast-spinner {
+    width: 22px; height: 22px; flex-shrink: 0;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin .7s linear infinite;
+  }
+  .toast-spinner.done { border-color: var(--accent); animation: none; }
+  .toast-content { flex: 1; }
+  .toast-title { font-size: .85rem; color: var(--text); font-weight: 600; }
+  .toast-sub { font-size: .75rem; color: var(--text3); font-family: var(--mono); margin-top: 2px; }
+
+  .main-content { padding: 2rem; max-width: 1400px; margin: 0 auto; }
+
+  /* ─── KPI CARDS ─── */
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-bottom: 2rem;
+  }
+  .kpi-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--r);
+    padding: 1.3rem 1.4rem;
+    position: relative;
+    overflow: hidden;
+    transition: border-color .2s, transform .2s;
+    cursor: default;
+  }
+  .kpi-card::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  }
+  .kpi-card.c-green::before { background: linear-gradient(90deg, var(--accent), transparent); }
+  .kpi-card.c-blue::before  { background: linear-gradient(90deg, var(--accent2), transparent); }
+  .kpi-card.c-red::before   { background: linear-gradient(90deg, var(--accent3), transparent); }
+  .kpi-card.c-yellow::before{ background: linear-gradient(90deg, var(--accent4), transparent); }
+  .kpi-card:hover { border-color: var(--text3); transform: translateY(-2px); }
+  .kpi-icon { font-size: 1.6rem; margin-bottom: .6rem; }
+  .kpi-label { font-size: .72rem; color: var(--text3); text-transform: uppercase; letter-spacing: .08em; font-family: var(--mono); margin-bottom: .4rem; }
+  .kpi-value { font-family: var(--mono); font-size: 1.9rem; font-weight: 700; line-height: 1; margin-bottom: .25rem; }
+  .kpi-value.c-green { color: var(--accent); }
+  .kpi-value.c-blue  { color: var(--accent2); }
+  .kpi-value.c-red   { color: var(--accent3); }
+  .kpi-value.c-yellow{ color: var(--accent4); }
+  .kpi-sub { font-size: .78rem; color: var(--text2); }
+
+  /* ─── CHARTS GRID ─── */
+  .charts-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 1rem;
+    margin-bottom: 1rem;
+  }
+  .charts-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 1rem;
+    margin-bottom: 1rem;
+  }
+  .chart-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--r);
+    padding: 1.5rem;
+    position: relative;
+  }
+  .chart-card.full-w { grid-column: 1 / -1; }
+  .chart-title {
+    font-family: var(--mono);
+    font-size: .78rem;
+    color: var(--accent);
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    margin-bottom: 1.2rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .chart-title-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--accent);
+  }
+  .chart-title-dot.blue  { background: var(--accent2); }
+  .chart-title-dot.red   { background: var(--accent3); }
+  .chart-title-dot.yellow{ background: var(--accent4); }
+  .chart-wrap { position: relative; }
+  canvas { max-width: 100%; }
+
+  /* ─── SLEEP TABLE ─── */
+  .sleep-entry {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: .7rem 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .sleep-entry:last-child { border-bottom: none; }
+  .sleep-date { font-family: var(--mono); font-size: .78rem; color: var(--text2); }
+  .sleep-bar-wrap { flex: 1; margin: 0 1rem; height: 6px; background: var(--bg3); border-radius: 3px; overflow: hidden; }
+  .sleep-bar { height: 100%; background: linear-gradient(90deg, var(--accent2), var(--accent)); border-radius: 3px; }
+  .sleep-hours { font-family: var(--mono); font-size: .85rem; color: var(--accent2); }
+
+  /* ─── WEIGHT TABLE ─── */
+  .data-table { width: 100%; border-collapse: collapse; }
+  .data-table th {
+    text-align: left;
+    font-family: var(--mono);
+    font-size: .7rem;
+    color: var(--text3);
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    padding: .5rem .5rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .data-table td {
+    padding: .65rem .5rem;
+    font-size: .85rem;
+    border-bottom: 1px solid rgba(30,58,82,.4);
+    color: var(--text2);
+  }
+  .data-table td:first-child { color: var(--text); font-family: var(--mono); font-size: .78rem; }
+  .data-table td.val { color: var(--accent); font-family: var(--mono); font-weight: 700; }
+
+  /* ─── ACTIVITY RINGS ─── */
+  .rings-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: .8rem;
+    padding-top: .3rem;
+  }
+  .ring-row { display: flex; align-items: center; gap: 1rem; }
+  .ring-label { font-size: .82rem; color: var(--text2); width: 100px; flex-shrink: 0; }
+  .ring-bar-wrap { flex: 1; height: 8px; background: var(--bg3); border-radius: 4px; overflow: hidden; }
+  .ring-bar { height: 100%; border-radius: 4px; transition: width 1s ease; }
+  .ring-val { font-family: var(--mono); font-size: .78rem; color: var(--text); width: 70px; text-align: right; flex-shrink: 0; }
+
+  /* ─── LOADER ─── */
+  #loading-overlay {
+    position: fixed; inset: 0;
+    background: var(--bg);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 9999;
+    flex-direction: column;
+    gap: 1.2rem;
+  }
+  .loader-spinner {
+    width: 48px; height: 48px;
+    border: 3px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin .8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loader-text { font-family: var(--mono); font-size: .85rem; color: var(--text2); }
+
+  /* ─── RESPONSIVE ─── */
+  @media (max-width: 900px) {
+    .charts-grid { grid-template-columns: 1fr; }
+    .charts-row  { grid-template-columns: 1fr; }
+    .kpi-grid    { grid-template-columns: repeat(2, 1fr); }
+    .main-content{ padding: 1rem; }
+    .topbar      { padding: .8rem 1rem; }
+  }
+  @media (max-width: 500px) {
+    .kpi-grid    { grid-template-columns: 1fr 1fr; }
+    .setup-title { font-size: 1.5rem; }
+  }
+
+  /* ─── DAY DETAIL MODAL ─── */
+  #day-modal {
+    position: fixed; inset: 0; z-index: 500;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+  }
+  #day-modal.open { display: flex; }
+  .modal-backdrop {
+    position: absolute; inset: 0;
+    background: rgba(4,8,14,.85);
+    backdrop-filter: blur(8px);
+    cursor: pointer;
+  }
+  .modal-box {
+    position: relative; z-index: 1;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    width: 100%; max-width: 820px;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 40px 100px rgba(0,0,0,.6);
+    animation: modalIn .25s cubic-bezier(.34,1.2,.64,1);
+  }
+  @keyframes modalIn {
+    from { opacity:0; transform: scale(.93) translateY(20px); }
+    to   { opacity:1; transform: scale(1) translateY(0); }
+  }
+  .modal-header {
+    padding: 1.6rem 1.8rem 1.2rem;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+    position: sticky; top: 0;
+    background: var(--bg2);
+    border-radius: 20px 20px 0 0;
+    z-index: 2;
+  }
+  .modal-date {
+    font-family: var(--mono);
+    font-size: 1.3rem;
+    color: var(--accent);
+  }
+  .modal-weekday {
+    font-size: .85rem;
+    color: var(--text2);
+    margin-top: .2rem;
+  }
+  .modal-close {
+    background: var(--card2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    width: 34px; height: 34px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; color: var(--text2); font-size: 1.1rem;
+    transition: all .15s;
+  }
+  .modal-close:hover { border-color: var(--accent3); color: var(--accent3); }
+  .modal-body { padding: 1.5rem 1.8rem; }
+  .modal-kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: .8rem;
+    margin-bottom: 1.5rem;
+  }
+  .modal-kpi {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1rem;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .modal-kpi::after {
+    content: '';
+    position: absolute; bottom: 0; left: 0; right: 0; height: 2px;
+  }
+  .modal-kpi.c-green::after { background: var(--accent); }
+  .modal-kpi.c-blue::after  { background: var(--accent2); }
+  .modal-kpi.c-red::after   { background: var(--accent3); }
+  .modal-kpi.c-yellow::after{ background: var(--accent4); }
+  .modal-kpi-icon { font-size: 1.4rem; margin-bottom: .4rem; }
+  .modal-kpi-val {
+    font-family: var(--mono);
+    font-size: 1.4rem;
+    font-weight: 700;
+    line-height: 1;
+    margin-bottom: .3rem;
+  }
+  .modal-kpi-val.c-green { color: var(--accent); }
+  .modal-kpi-val.c-blue  { color: var(--accent2); }
+  .modal-kpi-val.c-red   { color: var(--accent3); }
+  .modal-kpi-val.c-yellow{ color: var(--accent4); }
+  .modal-kpi-label { font-size: .72rem; color: var(--text3); text-transform: uppercase; letter-spacing: .06em; font-family: var(--mono); }
+  .modal-kpi-delta {
+    font-size: .72rem;
+    margin-top: .3rem;
+    font-family: var(--mono);
+  }
+  .modal-kpi-delta.up   { color: var(--accent); }
+  .modal-kpi-delta.down { color: var(--accent3); }
+  .modal-kpi-delta.neu  { color: var(--text3); }
+  .modal-chart-section {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.2rem;
+    margin-bottom: 1rem;
+  }
+  .modal-chart-title {
+    font-family: var(--mono);
+    font-size: .72rem;
+    color: var(--accent);
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    margin-bottom: 1rem;
+  }
+  .modal-compare-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: .8rem;
+    margin-bottom: 1rem;
+  }
+  .modal-compare-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1rem 1.2rem;
+  }
+  .modal-compare-title { font-size: .72rem; color: var(--text3); font-family: var(--mono); text-transform: uppercase; letter-spacing: .06em; margin-bottom: .8rem; }
+  .compare-row {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: .5rem;
+  }
+  .compare-label { font-size: .8rem; color: var(--text2); }
+  .compare-vals { display: flex; gap: .5rem; align-items: center; font-family: var(--mono); font-size: .8rem; }
+  .compare-day  { color: var(--text); font-weight: 700; }
+  .compare-avg  { color: var(--text3); }
+  .modal-loading {
+    text-align: center;
+    padding: 3rem 0;
+    font-family: var(--mono);
+    font-size: .82rem;
+    color: var(--text3);
+  }
+  .modal-spinner {
+    width: 28px; height: 28px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin .7s linear infinite;
+    margin: 0 auto 1rem;
+  }
+  .chart-clickable { cursor: pointer; }
+  .chart-hint {
+    font-size: .72rem;
+    color: var(--text3);
+    font-family: var(--mono);
+    text-align: right;
+    margin-top: .4rem;
+  }
+  @media (max-width: 600px) {
+    .modal-kpi-grid { grid-template-columns: repeat(2, 1fr); }
+    .modal-compare-grid { grid-template-columns: 1fr; }
+    .modal-body { padding: 1rem; }
+    .modal-header { padding: 1.2rem; }
+  }
+
+  /* ─── MISC ─── */
+  .tag {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: .68rem;
+    background: rgba(0,229,176,.06);
+    border: 1px solid rgba(0,229,176,.2);
+    color: var(--accent);
+    padding: 2px 8px;
+    border-radius: 4px;
+    margin-left: .5rem;
+  }
+  .no-data {
+    color: var(--text3);
+    font-family: var(--mono);
+    font-size: .8rem;
+    text-align: center;
+    padding: 2rem 0;
+  }
+  .refresh-btn {
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: .4rem .8rem;
+    color: var(--text3);
+    font-size: .8rem;
+    cursor: pointer;
+    transition: all .15s;
+    margin-left: auto;
+    display: flex; align-items: center; gap: 5px;
+  }
+  .refresh-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .section-title {
+    font-family: var(--mono);
+    font-size: .7rem;
+    color: var(--text3);
+    text-transform: uppercase;
+    letter-spacing: .1em;
+    margin: 1.8rem 0 .8rem;
+  }
+</style>
+</head>
+<body>
+
+<!-- ════════════════════════════════ SETUP SCREEN ════════════════════════════════ -->
+<div id="setup-screen">
+  <div class="setup-container">
+    <div class="logo-row">
+      <div class="logo-icon">💚</div>
+      <span class="logo-text">FitDash / Local</span>
+    </div>
+
+    <h1 class="setup-title">Google Fit<br>Dashboard</h1>
+    <p class="setup-sub">
+      Visualizza tutti i tuoi dati di salute — passi, frequenza cardiaca, sonno, calorie, peso e molto altro — direttamente nel browser, senza server esterni.
+    </p>
+
+    <div class="steps-grid">
+      <div class="step">
+        <span class="step-num">01</span>
+        <div class="step-content">
+          <h4>Crea un progetto su Google Cloud</h4>
+          <p>Vai su <a href="https://console.cloud.google.com" target="_blank">console.cloud.google.com</a> → <strong>Nuovo progetto</strong> → assegna un nome (es. "FitDash").</p>
+        </div>
+      </div>
+      <div class="step">
+        <span class="step-num">02</span>
+        <div class="step-content">
+          <h4>Abilita la Fitness API</h4>
+          <p>Nel pannello del progetto → <strong>API e servizi → Libreria</strong> → cerca <em>Fitness API</em> → <strong>Abilita</strong>.</p>
+        </div>
+      </div>
+      <div class="step">
+        <span class="step-num">03</span>
+        <div class="step-content">
+          <h4>Configura la Schermata consenso OAuth</h4>
+          <p><strong>API e servizi → Schermata consenso OAuth</strong> → tipo <strong>Esterno</strong> → compila nome e email → aggiungi il tuo account come <em>Utente di test</em>.</p>
+        </div>
+      </div>
+      <div class="step">
+        <span class="step-num">04</span>
+        <div class="step-content">
+          <h4>Crea credenziali OAuth 2.0</h4>
+          <p><strong>API e servizi → Credenziali → Crea credenziali → ID client OAuth</strong>.<br>
+          Tipo: <em>Applicazione web</em>.<br>
+          Origini autorizzate: aggiungi <code>http://localhost</code> e <code>null</code> (per apertura da file).<br>
+          Copia il <strong>Client ID</strong> e incollalo qui sotto.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="client-id-section">
+      <label>GOOGLE OAUTH CLIENT ID</label>
+      <input type="text" id="client-id-input"
+             placeholder="123456789-abcdefg.apps.googleusercontent.com"
+             spellcheck="false" autocomplete="off">
+      <button id="signin-btn" onclick="startSignIn()">
+        <span>🔐</span> Accedi con Google
+      </button>
+      <div class="error-msg" id="error-msg"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════ LOADING ════════════════════════════════ -->
+<div id="loading-overlay" style="display:none">
+  <div class="loader-spinner"></div>
+  <div class="loader-text" id="loader-text">Caricamento dati...</div>
+</div>
+
+<!-- ════════════════════════════════ DASHBOARD ════════════════════════════════ -->
+<div id="dashboard">
+  <nav class="topbar">
+    <div class="topbar-left">
+      <span class="logo-text">💚 FitDash</span>
+      <div class="user-badge">
+        <div class="user-avatar" id="user-initial">U</div>
+        <span id="user-name">Utente</span>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <button class="range-btn active" onclick="setRange(7,this)">7g</button>
+      <button class="range-btn" onclick="setRange(14,this)">14g</button>
+      <button class="range-btn" onclick="setRange(30,this)">30g</button>
+      <button class="export-btn" id="export-btn" onclick="exportToExcel()">⬇ Excel</button>
+      <button class="signout-btn" onclick="signOut()">⎋ Esci</button>
+    </div>
+  </nav>
+
+  <div class="main-content">
+    <div class="section-title">📊 Riepilogo Oggi</div>
+    <div class="kpi-grid" id="kpi-grid"></div>
+
+    <div class="section-title">📈 Andamento Passi & Calorie</div>
+    <div class="charts-grid">
+      <div class="chart-card">
+        <div class="chart-title"><span class="chart-title-dot"></span>Passi Giornalieri</div>
+        <div class="chart-wrap"><canvas id="stepsChart" height="110"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title"><span class="chart-title-dot yellow"></span>Attività Settimanale</div>
+        <div class="rings-wrap" id="activity-rings"></div>
+      </div>
+    </div>
+
+    <div class="charts-row">
+      <div class="chart-card">
+        <div class="chart-title"><span class="chart-title-dot red"></span>Freq. Cardiaca</div>
+        <div class="chart-wrap"><canvas id="hrChart" height="130"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title"><span class="chart-title-dot blue"></span>Calorie Bruciate</div>
+        <div class="chart-wrap"><canvas id="calChart" height="130"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title"><span class="chart-title-dot"></span>Distanza (km)</div>
+        <div class="chart-wrap"><canvas id="distChart" height="130"></canvas></div>
+      </div>
+    </div>
+
+    <div class="charts-grid">
+      <div class="chart-card">
+        <div class="chart-title"><span class="chart-title-dot blue"></span>Sonno <span class="tag">Ore / Notte</span></div>
+        <div id="sleep-list"></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title"><span class="chart-title-dot yellow"></span>Peso (kg)</div>
+        <div class="chart-wrap"><canvas id="weightChart" height="180"></canvas></div>
+      </div>
+    </div>
+
+    <div class="charts-row">
+      <div class="chart-card full-w">
+        <div class="chart-title"><span class="chart-title-dot"></span>Passi — Distribuzione Oraria <span class="tag">Oggi</span></div>
+        <div class="chart-wrap"><canvas id="hourlyChart" height="80"></canvas></div>
+      </div>
+    </div>
+
+    <div class="section-title">📋 Dati Grezzi</div>
+    <div class="charts-grid">
+      <div class="chart-card">
+        <div class="chart-title"><span class="chart-title-dot"></span>Storico Passi</div>
+        <table class="data-table" id="steps-table">
+          <thead><tr><th>Data</th><th>Passi</th><th>Obiettivo</th><th>Distanza</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title"><span class="chart-title-dot yellow"></span>Storico Peso</div>
+        <table class="data-table" id="weight-table">
+          <thead><tr><th>Data</th><th>Peso</th><th>BMI</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════ EXPORT TOAST ════════════════════════════════ -->
+<div id="export-toast">
+  <div class="toast-spinner" id="toast-spinner"></div>
+  <div class="toast-content">
+    <div class="toast-title" id="toast-title">Esportazione in corso...</div>
+    <div class="toast-sub"  id="toast-sub">Preparazione dati</div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════ DAY DETAIL MODAL ════════════════════════════════ -->
+<div id="day-modal">
+  <div class="modal-backdrop" onclick="closeModal()"></div>
+  <div class="modal-box">
+    <div class="modal-header">
+      <div>
+        <div class="modal-date" id="modal-date-title">–</div>
+        <div class="modal-weekday" id="modal-weekday">–</div>
+      </div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body" id="modal-body">
+      <div class="modal-loading">
+        <div class="modal-spinner"></div>
+        Caricamento dettagli...
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════ SCRIPT ════════════════════════════════ -->
+<script>
+// ─────────────────── CONFIG ───────────────────
+const SCOPES = [
+  'https://www.googleapis.com/auth/fitness.activity.read',
+  'https://www.googleapis.com/auth/fitness.heart_rate.read',
+  'https://www.googleapis.com/auth/fitness.sleep.read',
+  'https://www.googleapis.com/auth/fitness.body.read',
+  'https://www.googleapis.com/auth/userinfo.profile',
+].join(' ');
+
+let tokenClient;
+let accessToken = null;
+let currentDays = 7;
+let userHeight = null;
+let charts = {};
+let modalChart = null;
+
+// Global data cache for modal
+let globalData = {
+  labels: [], dates: [],
+  steps: [], cals: [], hrs: [], dist: [], active: [],
+  sleepNights: [], weights: []
+};
+
+// ─────────────────── AUTH ───────────────────
+function startSignIn() {
+  const clientId = document.getElementById('client-id-input').value.trim();
+  if (!clientId) return showError('Inserisci il tuo Client ID.');
+  if (!clientId.includes('.apps.googleusercontent.com')) return showError('Client ID non valido. Deve finire con .apps.googleusercontent.com');
+  localStorage.setItem('fit_client_id', clientId);
+  document.getElementById('signin-btn').disabled = true;
+
+  try {
+    tokenClient = google.accounts.oauth2.initTokenClient({
+      client_id: clientId,
+      scope: SCOPES,
+      callback: handleTokenResponse,
+      error_callback: (err) => {
+        showError('Errore OAuth: ' + (err.message || JSON.stringify(err)));
+        document.getElementById('signin-btn').disabled = false;
+      }
+    });
+    tokenClient.requestAccessToken({ prompt: 'consent' });
+  } catch(e) {
+    showError('Errore avvio OAuth: ' + e.message);
+    document.getElementById('signin-btn').disabled = false;
+  }
+}
+
+async function handleTokenResponse(resp) {
+  if (resp.error) { showError('Errore: ' + resp.error_description); return; }
+  accessToken = resp.access_token;
+  showLoading('Caricamento profilo...');
+  await loadUserProfile();
+  showLoading('Recupero dati salute...');
+  document.getElementById('setup-screen').style.display = 'none';
+  document.getElementById('dashboard').style.display = 'block';
+  await loadAllData(currentDays);
+  hideLoading();
+}
+
+async function loadUserProfile() {
+  try {
+    const r = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+      headers: { Authorization: 'Bearer ' + accessToken }
+    });
+    const u = await r.json();
+    const name = u.given_name || u.name || 'Utente';
+    document.getElementById('user-name').textContent = name;
+    document.getElementById('user-initial').textContent = name[0].toUpperCase();
+    if (u.picture) {
+      document.getElementById('user-initial').innerHTML = `<img src="${u.picture}" style="width:26px;height:26px;border-radius:50%;display:block">`;
+    }
+  } catch(e) {}
+}
+
+function signOut() {
+  if (accessToken) google.accounts.oauth2.revoke(accessToken);
+  accessToken = null;
+  localStorage.removeItem('fit_client_id');
+  document.getElementById('dashboard').style.display = 'none';
+  document.getElementById('setup-screen').style.display = 'flex';
+  document.getElementById('signin-btn').disabled = false;
+  Object.values(charts).forEach(c => c.destroy());
+  charts = {};
+}
+
+// ─────────────────── RANGE ───────────────────
+function setRange(days, btn) {
+  document.querySelectorAll('.range-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  currentDays = days;
+  showLoading('Aggiornamento dati...');
+  loadAllData(days).then(hideLoading);
+}
+
+// ─────────────────── GOOGLE FIT API ───────────────────
+const FIT = 'https://www.googleapis.com/fitness/v1/users/me';
+
+async function aggregate(dataTypeName, bucketByTime, days) {
+  const now = Date.now();
+  const start = now - days * 86400000;
+  const body = {
+    aggregateBy: [{ dataTypeName }],
+    bucketByTime: { durationMillis: bucketByTime },
+    startTimeMillis: start,
+    endTimeMillis: now
+  };
+  const r = await fetch(FIT + '/dataset:aggregate', {
+    method: 'POST',
+    headers: {
+      Authorization: 'Bearer ' + accessToken,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(body)
+  });
+  if (!r.ok) return null;
+  return r.json();
+}
+
+async function aggregateHourly(dataTypeName) {
+  const now = new Date(); now.setHours(23,59,59,999);
+  const start = new Date(); start.setHours(0,0,0,0);
+  const body = {
+    aggregateBy: [{ dataTypeName }],
+    bucketByTime: { durationMillis: 3600000 },
+    startTimeMillis: start.getTime(),
+    endTimeMillis: now.getTime()
+  };
+  const r = await fetch(FIT + '/dataset:aggregate', {
+    method: 'POST',
+    headers: {
+      Authorization: 'Bearer ' + accessToken,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(body)
+  });
+  if (!r.ok) return null;
+  return r.json();
+}
+
+async function getDataset(dataSourceId, startMs, endMs) {
+  const ds = `${startMs}000000-${endMs}000000`;
+  const url = `${FIT}/dataSources/${dataSourceId}/datasets/${ds}`;
+  const r = await fetch(url, { headers: { Authorization: 'Bearer ' + accessToken } });
+  if (!r.ok) return null;
+  return r.json();
+}
+
+async function fetchSleepSessions(days) {
+  const now = Date.now();
+  const start = now - days * 86400000;
+  const startTime = new Date(start).toISOString();
+  const endTime = new Date(now).toISOString();
+  // activityType=72 = sonno
+  const url = `${FIT}/sessions?activityType=72&startTime=${encodeURIComponent(startTime)}&endTime=${encodeURIComponent(endTime)}`;
+  const r = await fetch(url, { headers: { Authorization: 'Bearer ' + accessToken } });
+  if (!r.ok) return null;
+  return r.json();
+}
+
+// ─────────────────── LOAD ALL ───────────────────
+async function loadAllData(days) {
+  const DAY_MS = 86400000;
+  try {
+    const [stepsData, calData, hrData, distData, sleepData, weightData, activeData, hourlySteps] = await Promise.all([
+      aggregate('com.google.step_count.delta', DAY_MS, days),
+      aggregate('com.google.calories.expended', DAY_MS, days),
+      aggregate('com.google.heart_rate.bpm', DAY_MS, days),
+      aggregate('com.google.distance.delta', DAY_MS, days),
+      fetchSleepSessions(days),
+      aggregate('com.google.weight', DAY_MS * days, days),
+      aggregate('com.google.active_minutes', DAY_MS, days),
+      aggregateHourly('com.google.step_count.delta')
+    ]);
+
+    const { labels, dates } = buildLabels(days);
+    const steps = extractInt(stepsData, 'intVal');
+    const cals = extractFloat(calData, 'fpVal');
+    const hrs = extractHr(hrData);
+    const distRaw = extractFloat(distData, 'fpVal').map(v => +(v/1000).toFixed(2));
+    // Fallback: se la distanza è tutta 0 ma ci sono passi, stima (~0.75m/passo)
+    const hasDistData = distRaw.some(v => v > 0);
+    const dist = hasDistData ? distRaw : steps.map(s => +(s * 0.00075).toFixed(2));
+    const active = extractInt(activeData, 'intVal');
+
+    // Save to global cache
+    globalData = { labels, dates, steps, cals, hrs, dist, active, sleepNights: [], weights: [] };
+
+    // Today values (last bucket)
+    const todaySteps = steps[steps.length - 1] || 0;
+    const todayCal = Math.round(cals[cals.length - 1] || 0);
+    const todayHr = hrs[hrs.length - 1] || 0;
+    const todayDist = dist[dist.length - 1] || 0;
+    const avgSteps = steps.length ? Math.round(steps.reduce((a,b)=>a+b,0)/steps.filter(v=>v>0).length)||0 : 0;
+
+    // Weight
+    const weights = [];
+    if (weightData?.bucket) {
+      weightData.bucket.forEach(b => {
+        b.dataset?.forEach(ds => {
+          ds.point?.forEach(p => {
+            const kg = p.value?.[0]?.fpVal;
+            if (kg) weights.push({ t: new Date(p.startTimeNanos/1e6), kg: +kg.toFixed(1) });
+          });
+        });
+      });
+    }
+    weights.sort((a,b) => a.t - b.t);
+    const latestWeight = weights.length ? weights[weights.length-1].kg : null;
+    const bmi = (latestWeight && userHeight) ? +(latestWeight / (userHeight*userHeight)).toFixed(1) : null;
+
+    // Sleep — da Sessions API (activityType=72)
+    const sleepNights = [];
+    if (sleepData?.session) {
+      sleepData.session.forEach(s => {
+        const startMs = parseInt(s.startTimeMillis);
+        const endMs   = parseInt(s.endTimeMillis);
+        const hours   = +((endMs - startMs) / 3600000).toFixed(1);
+        if (hours > 0.5) {
+          sleepNights.push({ date: new Date(startMs), hours });
+        }
+      });
+      // Deduplica sessioni sovrapposte (es. nap + main sleep stessa notte)
+      sleepNights.sort((a, b) => a.date - b.date);
+      // Raggruppa per notte (giorno del wake-up)
+      const byNight = {};
+      sleepNights.forEach(s => {
+        const wakeDate = new Date(s.date.getTime() + s.hours * 3600000);
+        const key = wakeDate.toISOString().slice(0, 10);
+        if (!byNight[key]) byNight[key] = { date: s.date, hours: 0 };
+        byNight[key].hours = +Math.max(byNight[key].hours, s.hours).toFixed(1);
+      });
+      sleepNights.length = 0;
+      Object.values(byNight).forEach(n => sleepNights.push(n));
+      sleepNights.sort((a, b) => a.date - b.date);
+    }
+    const avgSleep = sleepNights.length ? +(sleepNights.reduce((a,b)=>a+b.hours,0)/sleepNights.length).toFixed(1) : null;
+
+    // Update global cache with sleep & weight
+    globalData.sleepNights = sleepNights;
+    globalData.weights = weights;
+
+    // Hourly steps today
+    const hourlyVals = new Array(24).fill(0);
+    if (hourlySteps?.bucket) {
+      hourlySteps.bucket.forEach((b, i) => {
+        b.dataset?.forEach(ds => ds.point?.forEach(p => {
+          hourlyVals[i] = (p.value?.[0]?.intVal || 0);
+        }));
+      });
+    }
+
+    // ─── KPI CARDS ───
+    renderKPI([
+      { icon:'🚶', label:'Passi Oggi', value: todaySteps.toLocaleString('it'), sub: `media: ${avgSteps.toLocaleString('it')} /g`, c:'green' },
+      { icon:'🔥', label:'Calorie', value: todayCal.toLocaleString('it'), sub:'kcal bruciate oggi', c:'red' },
+      { icon:'❤️', label:'Freq. Cardiaca', value: todayHr ? todayHr+' bpm' : '–', sub:'media odierna', c:'red' },
+      { icon:'📏', label:'Distanza', value: todayDist + ' km', sub: (hasDistData ? 'percorsa oggi' : '~stima da passi'), c:'blue' },
+      { icon:'😴', label:'Sonno Medio', value: avgSleep ? avgSleep+'h' : '–', sub:`su ${sleepNights.length} notti`, c:'blue' },
+      { icon:'⚡', label:'Minuti Attivi', value: (active[active.length-1]||0)+' min', sub:'oggi', c:'green' },
+      { icon:'📅', label:'Giorni Attivi', value: steps.filter(v=>v>1000).length+'/'+ days, sub:'obiettivo >1000 passi', c:'yellow' },
+      { icon:'⚖️', label:'Peso', value: latestWeight ? latestWeight+' kg' : '–', sub: bmi ? 'BMI '+bmi : 'nessun dato', c:'yellow' },
+    ]);
+
+    // ─── CHARTS ───
+    renderLineChart('stepsChart', labels, steps, 'Passi', '#00e5b0', true, i => openDayModal(i));
+    renderBarChart('calChart', labels, cals.map(v=>Math.round(v)), 'Calorie (kcal)', '#ff6b6b', i => openDayModal(i));
+    renderLineChart('hrChart', labels, hrs, 'FC media (bpm)', '#ff6b6b', false, i => openDayModal(i));
+    renderLineChart('distChart', labels, dist, 'Distanza (km)', '#00aaff', true, i => openDayModal(i));
+    renderBarChart('hourlyChart', Array.from({length:24},(_,i)=>i+':00'), hourlyVals, 'Passi', '#00e5b0');
+
+    // Weight chart
+    if (weights.length) {
+      renderWeightChart(weights);
+    }
+
+    // Activity rings
+    renderRings(labels, steps, cals.map(v=>Math.round(v)), active);
+
+    // Sleep list
+    renderSleep(sleepNights);
+
+    // Tables
+    renderStepsTable(labels, steps, dist);
+    renderWeightTable(weights);
+
+  } catch(e) {
+    console.error(e);
+  }
+}
+
+// ─────────────────── HELPERS ───────────────────
+function buildLabels(days) {
+  const labels = [];
+  const dates = [];
+  for (let i = 0; i < days; i++) {
+    const d = new Date();
+    d.setDate(d.getDate() - (days - 1) + i);
+    d.setHours(0, 0, 0, 0);
+    labels.push(d.toLocaleDateString('it', {day:'2-digit', month:'short'}));
+    dates.push(new Date(d));
+  }
+  return { labels, dates };
+}
+
+function extractInt(data, field) {
+  if (!data?.bucket) return Array(currentDays).fill(0);
+  return data.bucket.map(b => {
+    let v = 0;
+    b.dataset?.forEach(ds => ds.point?.forEach(p => { v += (p.value?.[0]?.[field] || 0); }));
+    return v;
+  });
+}
+
+function extractFloat(data, field) {
+  if (!data?.bucket) return Array(currentDays).fill(0);
+  return data.bucket.map(b => {
+    let v = 0;
+    b.dataset?.forEach(ds => ds.point?.forEach(p => { v += (p.value?.[0]?.[field] || 0); }));
+    return +v.toFixed(1);
+  });
+}
+
+function extractHr(data) {
+  if (!data?.bucket) return Array(currentDays).fill(0);
+  return data.bucket.map(b => {
+    let vals = [];
+    b.dataset?.forEach(ds => ds.point?.forEach(p => {
+      const v = p.value?.[0]?.fpVal || p.value?.[1]?.fpVal;
+      if (v) vals.push(v);
+    }));
+    return vals.length ? Math.round(vals.reduce((a,b)=>a+b,0)/vals.length) : 0;
+  });
+}
+
+// ─────────────────── RENDER ───────────────────
+function renderKPI(items) {
+  const grid = document.getElementById('kpi-grid');
+  grid.innerHTML = items.map(item => `
+    <div class="kpi-card c-${item.c}">
+      <div class="kpi-icon">${item.icon}</div>
+      <div class="kpi-label">${item.label}</div>
+      <div class="kpi-value c-${item.c}">${item.value}</div>
+      <div class="kpi-sub">${item.sub}</div>
+    </div>
+  `).join('');
+}
+
+const chartDefaults = {
+  responsive: true,
+  interaction: { intersect: false, mode: 'index' },
+  plugins: {
+    legend: { display: false },
+    tooltip: {
+      backgroundColor: '#0f1e2d',
+      borderColor: '#1e3a52',
+      borderWidth: 1,
+      titleColor: '#7ba8c0',
+      bodyColor: '#e8f4f8',
+      padding: 10,
+    }
+  },
+  scales: {
+    x: {
+      grid: { color: 'rgba(30,58,82,.4)', drawBorder: false },
+      ticks: { color: '#3d6580', font: { family: 'Space Mono', size: 10 }, maxRotation: 0 }
+    },
+    y: {
+      grid: { color: 'rgba(30,58,82,.4)', drawBorder: false },
+      ticks: { color: '#3d6580', font: { family: 'Space Mono', size: 10 } }
+    }
+  }
+};
+
+function renderLineChart(id, labels, data, label, color, fill, onClickCb) {
+  if (charts[id]) charts[id].destroy();
+  const ctx = document.getElementById(id).getContext('2d');
+  const grad = ctx.createLinearGradient(0, 0, 0, 200);
+  grad.addColorStop(0, color + '33');
+  grad.addColorStop(1, color + '00');
+  const canvas = document.getElementById(id);
+  if (onClickCb) canvas.classList.add('chart-clickable');
+  charts[id] = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [{
+        label, data,
+        borderColor: color,
+        borderWidth: 2,
+        pointBackgroundColor: color,
+        pointRadius: 4,
+        pointHoverRadius: 7,
+        pointHoverBackgroundColor: '#fff',
+        pointHoverBorderColor: color,
+        pointHoverBorderWidth: 2,
+        fill: fill ? { target: 'origin', above: grad } : false,
+        tension: .4
+      }]
+    },
+    options: {
+      ...chartDefaults,
+      onClick: onClickCb ? (evt, elements) => {
+        if (elements.length) onClickCb(elements[0].index);
+      } : undefined,
+      onHover: onClickCb ? (evt, elements) => {
+        evt.native.target.style.cursor = elements.length ? 'pointer' : 'default';
+      } : undefined,
+    }
+  });
+  // add hint
+  if (onClickCb) {
+    const wrap = canvas.closest('.chart-wrap') || canvas.parentElement;
+    let hint = wrap.querySelector('.chart-hint');
+    if (!hint) { hint = document.createElement('div'); hint.className = 'chart-hint'; wrap.appendChild(hint); }
+    hint.textContent = '👆 Clicca su un punto per il dettaglio';
+  }
+}
+
+function renderBarChart(id, labels, data, label, color, onClickCb) {
+  if (charts[id]) charts[id].destroy();
+  const ctx = document.getElementById(id).getContext('2d');
+  const canvas = document.getElementById(id);
+  if (onClickCb) canvas.classList.add('chart-clickable');
+  charts[id] = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        label, data,
+        backgroundColor: color + '80',
+        borderColor: color,
+        borderWidth: 1,
+        borderRadius: 4,
+        borderSkipped: false,
+        hoverBackgroundColor: color + 'cc',
+      }]
+    },
+    options: {
+      ...chartDefaults,
+      onClick: onClickCb ? (evt, elements) => {
+        if (elements.length) onClickCb(elements[0].index);
+      } : undefined,
+      onHover: onClickCb ? (evt, elements) => {
+        evt.native.target.style.cursor = elements.length ? 'pointer' : 'default';
+      } : undefined,
+      scales: {
+        ...chartDefaults.scales,
+        x: { ...chartDefaults.scales.x, ticks: { ...chartDefaults.scales.x.ticks, maxTicksLimit: 12 } }
+      }
+    }
+  });
+  if (onClickCb) {
+    const wrap = canvas.closest('.chart-wrap') || canvas.parentElement;
+    let hint = wrap.querySelector('.chart-hint');
+    if (!hint) { hint = document.createElement('div'); hint.className = 'chart-hint'; wrap.appendChild(hint); }
+    hint.textContent = '👆 Clicca su una barra per il dettaglio';
+  }
+}
+
+function renderWeightChart(weights) {
+  if (charts['weightChart']) charts['weightChart'].destroy();
+  const ctx = document.getElementById('weightChart').getContext('2d');
+  const labels = weights.map(w => w.t.toLocaleDateString('it', {day:'2-digit', month:'short'}));
+  const data = weights.map(w => w.kg);
+  const grad = ctx.createLinearGradient(0, 0, 0, 180);
+  grad.addColorStop(0, '#ffd16633');
+  grad.addColorStop(1, '#ffd16600');
+  charts['weightChart'] = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [{
+        label: 'Peso (kg)', data,
+        borderColor: '#ffd166',
+        borderWidth: 2,
+        pointBackgroundColor: '#ffd166',
+        pointRadius: 4,
+        fill: { target: 'origin', above: grad },
+        tension: .3
+      }]
+    },
+    options: { ...chartDefaults }
+  });
+}
+
+function renderRings(labels, steps, cals, active) {
+  const wrap = document.getElementById('activity-rings');
+  const STEP_GOAL = 8000, CAL_GOAL = 500, ACT_GOAL = 30;
+  const avgS = steps.length ? Math.round(steps.reduce((a,b)=>a+b,0)/steps.length) : 0;
+  const avgC = cals.length ? Math.round(cals.reduce((a,b)=>a+b,0)/cals.length) : 0;
+  const avgA = active.length ? Math.round(active.reduce((a,b)=>a+b,0)/active.length) : 0;
+
+  const metrics = [
+    { label:'Passi medi', val: avgS.toLocaleString('it'), pct: Math.min(100, Math.round(avgS/STEP_GOAL*100)), color:'var(--accent)' },
+    { label:'Calorie medie', val: avgC + ' kcal', pct: Math.min(100, Math.round(avgC/CAL_GOAL*100)), color:'var(--accent3)' },
+    { label:'Minuti attivi', val: avgA + ' min', pct: Math.min(100, Math.round(avgA/ACT_GOAL*100)), color:'var(--accent4)' },
+    { label:'Giorni >8k passi', val: steps.filter(v=>v>=8000).length +'/'+ steps.length, pct: Math.round(steps.filter(v=>v>=8000).length/Math.max(1,steps.length)*100), color:'var(--accent2)' },
+  ];
+  wrap.innerHTML = metrics.map(m => `
+    <div class="ring-row">
+      <div class="ring-label">${m.label}</div>
+      <div class="ring-bar-wrap">
+        <div class="ring-bar" style="width:${m.pct}%;background:${m.color}"></div>
+      </div>
+      <div class="ring-val">${m.val}</div>
+    </div>
+  `).join('');
+}
+
+function renderSleep(nights) {
+  const el = document.getElementById('sleep-list');
+  if (!nights.length) { el.innerHTML = '<div class="no-data">Nessun dato sonno disponibile</div>'; return; }
+  const maxH = Math.max(...nights.map(n=>n.hours));
+  el.innerHTML = nights.slice(-10).reverse().map(n => `
+    <div class="sleep-entry">
+      <div class="sleep-date">${n.date.toLocaleDateString('it',{weekday:'short',day:'2-digit',month:'short'})}</div>
+      <div class="sleep-bar-wrap"><div class="sleep-bar" style="width:${Math.round(n.hours/maxH*100)}%"></div></div>
+      <div class="sleep-hours">${n.hours}h</div>
+    </div>
+  `).join('');
+}
+
+function renderStepsTable(labels, steps, dist) {
+  const tbody = document.querySelector('#steps-table tbody');
+  const rows = labels.map((l, i) => ({l, s: steps[i], d: dist[i]})).reverse().slice(0, 14);
+  tbody.innerHTML = rows.map(r => `
+    <tr>
+      <td>${r.l}</td>
+      <td class="val">${r.s.toLocaleString('it')}</td>
+      <td style="color:${r.s>=8000?'var(--accent)':'var(--text3)'}">${r.s>=8000?'✓ Raggiunto':'✗'}</td>
+      <td>${r.d} km</td>
+    </tr>
+  `).join('');
+}
+
+function renderWeightTable(weights) {
+  const tbody = document.querySelector('#weight-table tbody');
+  if (!weights.length) { tbody.innerHTML = '<tr><td colspan="3" class="no-data">Nessun dato peso</td></tr>'; return; }
+  tbody.innerHTML = weights.slice().reverse().slice(0, 14).map(w => {
+    const bmi = userHeight ? +(w.kg/(userHeight*userHeight)).toFixed(1) : null;
+    return `<tr>
+      <td>${w.t.toLocaleDateString('it',{day:'2-digit',month:'short',year:'numeric'})}</td>
+      <td class="val">${w.kg} kg</td>
+      <td>${bmi || '–'}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ─────────────────── DAY DETAIL MODAL ───────────────────
+async function openDayModal(index) {
+  const { labels, dates, steps, cals, hrs, dist, active, sleepNights, weights } = globalData;
+  const date = dates[index];
+  if (!date) return;
+
+  // Show modal with loading state
+  document.getElementById('day-modal').classList.add('open');
+  document.body.style.overflow = 'hidden';
+
+  const dayLabel = date.toLocaleDateString('it', {day:'2-digit', month:'long', year:'numeric'});
+  const weekday = date.toLocaleDateString('it', {weekday:'long'});
+  document.getElementById('modal-date-title').textContent = labels[index];
+  document.getElementById('modal-weekday').textContent = weekday.charAt(0).toUpperCase() + weekday.slice(1) + ' · ' + dayLabel;
+  document.getElementById('modal-body').innerHTML = `<div class="modal-loading"><div class="modal-spinner"></div>Caricamento dati orari...</div>`;
+
+  // Fetch hourly data for this specific day
+  const dayStart = new Date(date); dayStart.setHours(0,0,0,0);
+  const dayEnd   = new Date(date); dayEnd.setHours(23,59,59,999);
+
+  let hourlySteps = new Array(24).fill(0);
+  let hourlyHr    = new Array(24).fill(0);
+  let hourlyCals  = new Array(24).fill(0);
+
+  try {
+    const [hSteps, hHr, hCals] = await Promise.all([
+      aggregateCustom('com.google.step_count.delta', 3600000, dayStart, dayEnd),
+      aggregateCustom('com.google.heart_rate.bpm',   3600000, dayStart, dayEnd),
+      aggregateCustom('com.google.calories.expended',3600000, dayStart, dayEnd),
+    ]);
+
+    if (hSteps?.bucket) hSteps.bucket.forEach((b,i) => {
+      b.dataset?.forEach(ds => ds.point?.forEach(p => { hourlySteps[i] += p.value?.[0]?.intVal || 0; }));
+    });
+    if (hHr?.bucket) hHr.bucket.forEach((b,i) => {
+      let vals = [];
+      b.dataset?.forEach(ds => ds.point?.forEach(p => {
+        const v = p.value?.[0]?.fpVal || p.value?.[1]?.fpVal;
+        if (v) vals.push(v);
+      }));
+      hourlyHr[i] = vals.length ? Math.round(vals.reduce((a,b)=>a+b,0)/vals.length) : 0;
+    });
+    if (hCals?.bucket) hCals.bucket.forEach((b,i) => {
+      b.dataset?.forEach(ds => ds.point?.forEach(p => { hourlyCals[i] += p.value?.[0]?.fpVal || 0; }));
+    });
+  } catch(e) { console.warn('Hourly fetch error:', e); }
+
+  // Compute averages for comparison
+  const nonZero = arr => arr.filter(v => v > 0);
+  const avg = arr => nonZero(arr).length ? Math.round(nonZero(arr).reduce((a,b)=>a+b,0)/nonZero(arr).length) : 0;
+  const avgSteps = avg(steps), avgCals = avg(cals.map(v=>Math.round(v))), avgHr = avg(hrs), avgDist = avg(dist.map(v=>v*10))/10;
+
+  const daySteps  = steps[index]  || 0;
+  const dayCals   = Math.round(cals[index]  || 0);
+  const dayHr     = hrs[index]    || 0;
+  const dayDist   = dist[index]   || 0;
+  const dayActive = active[index] || 0;
+
+  // Sleep for this night
+  const dayDateStr = date.toDateString();
+  const nightSleep = sleepNights.find(n => {
+    const nd = new Date(n.date); nd.setDate(nd.getDate()+1);
+    return nd.toDateString() === dayDateStr || n.date.toDateString() === dayDateStr;
+  });
+
+  // Weight closest to this day
+  const dayWeight = weights.length ? weights.reduce((prev, curr) =>
+    Math.abs(curr.t - date) < Math.abs(prev.t - date) ? curr : prev, weights[0]) : null;
+
+  function delta(val, ref, unit='') {
+    if (!ref || !val) return '<span class="modal-kpi-delta neu">–</span>';
+    const d = val - ref;
+    const sign = d >= 0 ? '+' : '';
+    const cls = d > 0 ? 'up' : d < 0 ? 'down' : 'neu';
+    return `<span class="modal-kpi-delta ${cls}">${sign}${Math.round(d).toLocaleString('it')}${unit} vs media</span>`;
+  }
+
+  const hourLabels = Array.from({length:24}, (_,i) => i < 10 ? '0'+i : ''+i);
+  const peakHour = hourlySteps.indexOf(Math.max(...hourlySteps));
+
+  document.getElementById('modal-body').innerHTML = `
+    <div class="modal-kpi-grid">
+      <div class="modal-kpi c-green">
+        <div class="modal-kpi-icon">🚶</div>
+        <div class="modal-kpi-val c-green">${daySteps.toLocaleString('it')}</div>
+        <div class="modal-kpi-label">Passi</div>
+        ${delta(daySteps, avgSteps, '')}
+      </div>
+      <div class="modal-kpi c-red">
+        <div class="modal-kpi-icon">🔥</div>
+        <div class="modal-kpi-val c-red">${dayCals.toLocaleString('it')}</div>
+        <div class="modal-kpi-label">Calorie</div>
+        ${delta(dayCals, avgCals, ' kcal')}
+      </div>
+      <div class="modal-kpi c-red">
+        <div class="modal-kpi-icon">❤️</div>
+        <div class="modal-kpi-val c-red">${dayHr || '–'}${dayHr ? ' bpm':''}</div>
+        <div class="modal-kpi-label">Freq. Cardiaca</div>
+        ${delta(dayHr, avgHr, ' bpm')}
+      </div>
+      <div class="modal-kpi c-blue">
+        <div class="modal-kpi-icon">📏</div>
+        <div class="modal-kpi-val c-blue">${dayDist} km</div>
+        <div class="modal-kpi-label">Distanza</div>
+        ${delta(dayDist*10, avgDist*10, ' km')}
+      </div>
+      <div class="modal-kpi c-yellow">
+        <div class="modal-kpi-icon">⚡</div>
+        <div class="modal-kpi-val c-yellow">${dayActive} min</div>
+        <div class="modal-kpi-label">Min Attivi</div>
+        <span class="modal-kpi-delta neu">obiettivo 30 min</span>
+      </div>
+      <div class="modal-kpi c-blue">
+        <div class="modal-kpi-icon">😴</div>
+        <div class="modal-kpi-val c-blue">${nightSleep ? nightSleep.hours+'h' : '–'}</div>
+        <div class="modal-kpi-label">Sonno</div>
+        <span class="modal-kpi-delta neu">notte precedente</span>
+      </div>
+      <div class="modal-kpi c-yellow">
+        <div class="modal-kpi-icon">⚖️</div>
+        <div class="modal-kpi-val c-yellow">${dayWeight ? dayWeight.kg+' kg' : '–'}</div>
+        <div class="modal-kpi-label">Peso</div>
+        <span class="modal-kpi-delta neu">${dayWeight ? dayWeight.t.toLocaleDateString('it',{day:'2-digit',month:'short'}) : '–'}</span>
+      </div>
+      <div class="modal-kpi c-green">
+        <div class="modal-kpi-icon">🏆</div>
+        <div class="modal-kpi-val c-green">${daySteps >= 8000 ? '✓' : '✗'}</div>
+        <div class="modal-kpi-label">Obiettivo 8k</div>
+        <span class="modal-kpi-delta ${daySteps>=8000?'up':'down'}">${daySteps>=8000?'Raggiunto!':'Mancano '+(8000-daySteps).toLocaleString('it')}</span>
+      </div>
+    </div>
+
+    <div class="modal-chart-section">
+      <div class="modal-chart-title">⏱ Distribuzione Oraria Passi — picco alle ${peakHour}:00</div>
+      <canvas id="modal-hourly-chart" height="90"></canvas>
+    </div>
+
+    <div class="modal-compare-grid">
+      <div class="modal-compare-card">
+        <div class="modal-compare-title">📊 Confronto con Media Periodo</div>
+        ${[
+          ['🚶 Passi',    daySteps.toLocaleString('it'),     avgSteps.toLocaleString('it')],
+          ['🔥 Calorie',  dayCals+' kcal',                  avgCals+' kcal'],
+          ['❤️ FC media', dayHr ? dayHr+' bpm' : '–',       avgHr ? avgHr+' bpm' : '–'],
+          ['📏 Distanza', dayDist+' km',                     avgDist+' km'],
+        ].map(([label, day, avg]) => `
+          <div class="compare-row">
+            <div class="compare-label">${label}</div>
+            <div class="compare-vals">
+              <span class="compare-day">${day}</span>
+              <span class="compare-avg">/ ${avg}</span>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+      <div class="modal-compare-card">
+        <div class="modal-compare-title">🕐 Top Ore per Passi</div>
+        ${hourlySteps
+          .map((v,i)=>({h:i,v}))
+          .sort((a,b)=>b.v-a.v)
+          .slice(0,5)
+          .map(({h,v}) => `
+            <div class="compare-row">
+              <div class="compare-label">${h < 10 ? '0'+h : h}:00 – ${h+1 < 10 ? '0'+(h+1) : h+1}:00</div>
+              <div class="compare-vals"><span class="compare-day">${v.toLocaleString('it')} passi</span></div>
+            </div>
+          `).join('') || '<div style="color:var(--text3);font-size:.8rem;padding:.5rem 0">Nessun dato orario</div>'
+        }
+      </div>
+    </div>
+  `;
+
+  // Render hourly chart inside modal
+  if (modalChart) { modalChart.destroy(); modalChart = null; }
+  const mCtx = document.getElementById('modal-hourly-chart').getContext('2d');
+  const mGrad = mCtx.createLinearGradient(0, 0, 0, 160);
+  mGrad.addColorStop(0, '#00e5b033');
+  mGrad.addColorStop(1, '#00e5b000');
+  modalChart = new Chart(mCtx, {
+    type: 'bar',
+    data: {
+      labels: hourLabels,
+      datasets: [{
+        label: 'Passi',
+        data: hourlySteps,
+        backgroundColor: hourlySteps.map((v,i) => i === peakHour ? '#00e5b0' : '#00e5b040'),
+        borderColor: hourlySteps.map((v,i) => i === peakHour ? '#00e5b0' : '#00e5b080'),
+        borderWidth: 1,
+        borderRadius: 3,
+        borderSkipped: false,
+      }]
+    },
+    options: {
+      ...chartDefaults,
+      plugins: { ...chartDefaults.plugins, tooltip: {
+        ...chartDefaults.plugins.tooltip,
+        callbacks: { title: items => items[0].label+':00', label: ctx => ctx.raw.toLocaleString('it')+' passi' }
+      }}
+    }
+  });
+}
+
+function closeModal() {
+  document.getElementById('day-modal').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+// Close modal on Escape key
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+// ─────────────────── CUSTOM AGGREGATE ───────────────────
+async function aggregateCustom(dataTypeName, bucketMs, startDate, endDate) {
+  const body = {
+    aggregateBy: [{ dataTypeName }],
+    bucketByTime: { durationMillis: bucketMs },
+    startTimeMillis: startDate.getTime(),
+    endTimeMillis: endDate.getTime()
+  };
+  const r = await fetch(FIT + '/dataset:aggregate', {
+    method: 'POST',
+    headers: { Authorization: 'Bearer ' + accessToken, 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  });
+  if (!r.ok) return null;
+  return r.json();
+}
+
+// ─────────────────── EXCEL EXPORT ───────────────────
+async function exportToExcel() {
+  const btn = document.getElementById('export-btn');
+  btn.disabled = true;
+  showToast('Esportazione in corso...', 'Preparazione dati');
+
+  try {
+    const wb = new ExcelJS.Workbook();
+    wb.creator = 'FitDash';
+    wb.created = new Date();
+
+    const { labels, dates, steps, cals, hrs, dist, active, sleepNights, weights } = globalData;
+
+    // ── Helpers ──
+    const C = {
+      bgDark:'080D14', bgCard:'0F1E2D', bgCard2:'162436',
+      accent:'00E5B0', blue:'00AAFF', red:'FF6B6B',
+      yellow:'FFD166', text:'E8F4F8', text2:'7BA8C0',
+      border:'1E3A52', black:'000000'
+    };
+    const hdrFill = v => ({ type:'pattern', pattern:'solid', fgColor:{ argb:'FF'+v } });
+    const mkFont  = (color, sz, bold=false) => ({ name:'Arial', color:{ argb:'FF'+color }, size:sz, bold });
+    const b1 = { style:'thin', color:{ argb:'FF'+C.border } };
+    const allB = { top:b1, left:b1, bottom:b1, right:b1 };
+    const ctr  = { horizontal:'center', vertical:'middle' };
+
+    function styleHdr(row, bg, fg=C.black, sz=11) {
+      row.eachCell(c => { c.fill=hdrFill(bg); c.font=mkFont(fg,sz,true); c.border=allB; c.alignment=ctr; });
+      row.height = 22;
+    }
+    function styleRow(row, even) {
+      row.eachCell(c => { c.fill=hdrFill(even?C.bgCard2:C.bgCard); c.font=mkFont(C.text,10); c.border=allB; c.alignment={vertical:'middle'}; });
+      row.height = 18;
+    }
+    const nonZ = a => a.filter(v=>v>0);
+    const avg  = a => nonZ(a).length ? +(nonZ(a).reduce((x,y)=>x+y,0)/nonZ(a).length).toFixed(1) : 0;
+    const mx   = a => nonZ(a).length ? Math.max(...nonZ(a)) : 0;
+    const mn   = a => nonZ(a).length ? Math.min(...nonZ(a)) : 0;
+
+    // ══ SHEET 1 — RIEPILOGO ══
+    showToast('Esportazione...', 'Foglio Riepilogo');
+    const ws1 = wb.addWorksheet('📊 Riepilogo', { properties:{ tabColor:{ argb:'FF'+C.accent } } });
+    ws1.views = [{ showGridLines:false }];
+    ws1.columns = [{width:28},{width:22},{width:22},{width:16},{width:16},{width:18}];
+
+    ws1.mergeCells('A1:F1');
+    Object.assign(ws1.getCell('A1'), { value:'💚 Google Fit Dashboard — Riepilogo', fill:hdrFill(C.bgDark), font:mkFont(C.accent,16,true), alignment:ctr });
+    ws1.getRow(1).height = 36;
+
+    ws1.mergeCells('A2:F2');
+    Object.assign(ws1.getCell('A2'), { value:`Periodo: ${labels[0]} → ${labels[labels.length-1]}  (${labels.length} giorni)   Esportato il ${new Date().toLocaleDateString('it')}`, fill:hdrFill(C.bgCard), font:mkFont(C.text2,10), alignment:ctr });
+    ws1.getRow(2).height = 20;
+    ws1.addRow([]).height = 8;
+
+    const kHdr = ws1.addRow(['Metrica','Totale / Ultimo','Media Giornaliera','Massimo','Minimo','Giorni con Dati']);
+    styleHdr(kHdr, C.accent, C.black, 11);
+
+    const kRows = [
+      ['🚶 Passi',             steps.reduce((a,b)=>a+b,0).toLocaleString('it'), Math.round(avg(steps)).toLocaleString('it'), mx(steps).toLocaleString('it'), mn(steps).toLocaleString('it'), nonZ(steps).length],
+      ['🔥 Calorie (kcal)',    Math.round(cals.reduce((a,b)=>a+b,0)), Math.round(avg(cals)), Math.round(mx(cals)), Math.round(mn(cals)), nonZ(cals).length],
+      ['❤️ Freq. Cardiaca',   '–', Math.round(avg(hrs))||'–', mx(hrs)||'–', mn(hrs)||'–', nonZ(hrs).length],
+      ['📏 Distanza (km)',     dist.reduce((a,b)=>a+b,0).toFixed(1), avg(dist).toFixed(2), mx(dist).toFixed(2), mn(dist).toFixed(2), nonZ(dist).length],
+      ['⚡ Minuti Attivi',     active.reduce((a,b)=>a+b,0), Math.round(avg(active)), mx(active), mn(active), nonZ(active).length],
+      ['😴 Sonno medio (h)',   sleepNights.length ? avg(sleepNights.map(n=>n.hours)) : '–', sleepNights.length ? avg(sleepNights.map(n=>n.hours)) : '–', sleepNights.length ? mx(sleepNights.map(n=>n.hours)) : '–', sleepNights.length ? mn(sleepNights.map(n=>n.hours)) : '–', sleepNights.length],
+      ['⚖️ Peso attuale (kg)', weights.length ? weights[weights.length-1].kg : '–', '–', weights.length ? mx(weights.map(w=>w.kg)) : '–', weights.length ? mn(weights.map(w=>w.kg)) : '–', weights.length],
+      ['🏆 Giorni obiettivo 8k', steps.filter(v=>v>=8000).length+' / '+steps.length, Math.round(steps.filter(v=>v>=8000).length/Math.max(1,steps.length)*100)+'%', '–','–','–'],
+    ];
+    kRows.forEach((r,i) => {
+      const row = ws1.addRow(r);
+      styleRow(row, i%2===0);
+      row.getCell(1).font = mkFont(C.accent, 10, true);
+    });
+
+    // ══ SHEET 2 — DATI GIORNALIERI ══
+    showToast('Esportazione...', 'Foglio Dati Giornalieri');
+    const ws2 = wb.addWorksheet('📅 Dati Giornalieri', { properties:{ tabColor:{ argb:'FF'+C.blue } } });
+    ws2.views = [{ showGridLines:false }];
+    ws2.columns = [{width:14},{width:12},{width:12},{width:16},{width:16},{width:14},{width:12},{width:14}];
+
+    ws2.mergeCells('A1:H1');
+    Object.assign(ws2.getCell('A1'), { value:'📅 Dati Giornalieri', fill:hdrFill(C.bgDark), font:mkFont(C.blue,14,true), alignment:ctr });
+    ws2.getRow(1).height = 30;
+
+    const dHdr = ws2.addRow(['Data','Giorno','Passi','Calorie (kcal)','FC Media (bpm)','Distanza (km)','Min Attivi','Obiettivo 8k']);
+    styleHdr(dHdr, C.blue, C.black);
+
+    labels.forEach((lbl,i) => {
+      const d = dates[i];
+      const row = ws2.addRow([
+        lbl,
+        d ? d.toLocaleDateString('it',{weekday:'short'}) : '',
+        steps[i]||0, Math.round(cals[i]||0), hrs[i]||0, dist[i]||0, active[i]||0,
+        (steps[i]||0)>=8000 ? '✓ Sì' : '✗ No'
+      ]);
+      styleRow(row, i%2===0);
+      row.getCell(3).font = mkFont((steps[i]||0)>=8000?C.accent:C.text, 10, (steps[i]||0)>=8000);
+      row.getCell(8).font = mkFont((steps[i]||0)>=8000?C.accent:C.red, 10, true);
+    });
+    const n = labels.length;
+    const totRow = ws2.addRow(['TOTALE / MEDIA','',`=SUM(C3:C${2+n})`,`=ROUND(SUM(D3:D${2+n}),0)`,`=ROUND(AVERAGE(IF(E3:E${2+n}>0,E3:E${2+n})),0)`,`=ROUND(SUM(F3:F${2+n}),2)`,`=SUM(G3:G${2+n})`,`=COUNTIF(H3:H${2+n},"✓ Sì")&" giorni"`]);
+    styleHdr(totRow, C.bgCard2, C.accent, 10);
+
+    // ══ SHEET 3 — SONNO ══
+    showToast('Esportazione...', 'Foglio Sonno');
+    const ws3 = wb.addWorksheet('😴 Sonno', { properties:{ tabColor:{ argb:'FF'+C.blue } } });
+    ws3.views=[{showGridLines:false}];
+    ws3.columns=[{width:20},{width:16},{width:14},{width:18}];
+    ws3.mergeCells('A1:D1');
+    Object.assign(ws3.getCell('A1'),{value:'😴 Dati Sonno',fill:hdrFill(C.bgDark),font:mkFont(C.blue,14,true),alignment:ctr});
+    ws3.getRow(1).height=30;
+    styleHdr(ws3.addRow(['Data','Giorno','Ore Sonno','Valutazione']), C.blue, C.black);
+    if (sleepNights.length) {
+      [...sleepNights].sort((a,b)=>b.date-a.date).forEach((n,i)=>{
+        const rating = n.hours>=8?'😊 Ottimo':n.hours>=7?'🙂 Buono':n.hours>=6?'😐 Sufficiente':'😴 Scarso';
+        const row=ws3.addRow([n.date.toLocaleDateString('it',{day:'2-digit',month:'short',year:'numeric'}),n.date.toLocaleDateString('it',{weekday:'long'}),n.hours,rating]);
+        styleRow(row,i%2===0);
+        row.getCell(3).font=mkFont(n.hours>=7?C.accent:n.hours>=6?C.yellow:C.red,10,true);
+      });
+      const sn=sleepNights.length;
+      const sTot=ws3.addRow(['MEDIA','',`=ROUND(AVERAGE(C3:C${2+sn}),1)`,'']);
+      styleHdr(sTot,C.bgCard2,C.accent,10);
+    } else { ws3.addRow(['Nessun dato sonno nel periodo selezionato']); }
+
+    // ══ SHEET 4 — PESO ══
+    showToast('Esportazione...', 'Foglio Peso');
+    const ws4 = wb.addWorksheet('⚖️ Peso', { properties:{ tabColor:{ argb:'FF'+C.yellow } } });
+    ws4.views=[{showGridLines:false}];
+    ws4.columns=[{width:20},{width:14},{width:18},{width:14}];
+    ws4.mergeCells('A1:D1');
+    Object.assign(ws4.getCell('A1'),{value:'⚖️ Storico Peso',fill:hdrFill(C.bgDark),font:mkFont(C.yellow,14,true),alignment:ctr});
+    ws4.getRow(1).height=30;
+    styleHdr(ws4.addRow(['Data','Peso (kg)','Δ vs Precedente','Trend']),C.yellow,C.black);
+    if (weights.length) {
+      const sw=[...weights].sort((a,b)=>b.t-a.t);
+      sw.forEach((w,i)=>{
+        const prev=sw[i+1];
+        const d=prev?+(w.kg-prev.kg).toFixed(1):null;
+        const trend=d==null?'–':d>0?'▲ +'+d:d<0?'▼ '+d:'→ stabile';
+        const row=ws4.addRow([w.t.toLocaleDateString('it',{day:'2-digit',month:'short',year:'numeric'}),w.kg,d!=null?(d>0?'+':'')+d+' kg':'–',trend]);
+        styleRow(row,i%2===0);
+        if(d!=null){row.getCell(3).font=mkFont(d>0?C.red:d<0?C.accent:C.text2,10,true);row.getCell(4).font=mkFont(d>0?C.red:d<0?C.accent:C.text2,10);}
+      });
+    } else { ws4.addRow(['Nessun dato peso disponibile']); }
+
+    // ══ SHEET 5 — GRAFICI ══
+    showToast('Esportazione...', 'Acquisizione grafici');
+    const ws5 = wb.addWorksheet('📈 Grafici', { properties:{ tabColor:{ argb:'FF'+C.accent } } });
+    ws5.views=[{showGridLines:false}];
+    for(let c=1;c<=12;c++) ws5.getColumn(c).width=13;
+    ws5.mergeCells('A1:L1');
+    Object.assign(ws5.getCell('A1'),{value:'📈 Grafici — Google Fit Dashboard',fill:hdrFill(C.bgDark),font:mkFont(C.accent,14,true),alignment:ctr});
+    ws5.getRow(1).height=30;
+
+    const chartDefs=[
+      {id:'stepsChart', label:'🚶 Passi Giornalieri',    startRow:2,  startCol:1},
+      {id:'calChart',   label:'🔥 Calorie Bruciate',      startRow:2,  startCol:7},
+      {id:'hrChart',    label:'❤️ Frequenza Cardiaca',    startRow:28, startCol:1},
+      {id:'distChart',  label:'📏 Distanza Percorsa',     startRow:28, startCol:7},
+      {id:'weightChart',label:'⚖️ Peso nel Tempo',        startRow:54, startCol:1},
+      {id:'hourlyChart',label:'🕐 Passi Orari (Oggi)',    startRow:54, startCol:7},
+    ];
+
+    for(const def of chartDefs){
+      const canvas=document.getElementById(def.id);
+      if(!canvas) continue;
+      try {
+        // Label cell
+        ws5.mergeCells(def.startRow, def.startCol, def.startRow, def.startCol+4);
+        const lc=ws5.getCell(def.startRow, def.startCol);
+        lc.value=def.label; lc.fill=hdrFill(C.bgCard2); lc.font=mkFont(C.accent,10,true); lc.alignment=ctr;
+        ws5.getRow(def.startRow).height=18;
+        // Reserve rows
+        for(let r=def.startRow+1;r<def.startRow+24;r++) ws5.getRow(r).height=13;
+        // Image
+        const b64=canvas.toDataURL('image/png').split(',')[1];
+        const imgId=wb.addImage({base64:b64,extension:'png'});
+        ws5.addImage(imgId,{
+          tl:{col:def.startCol-1, row:def.startRow},
+          ext:{width:550, height:290}
+        });
+      } catch(e){ console.warn('Chart img error:',def.id,e); }
+    }
+
+    // ── Download ──
+    showToast('Quasi pronto...', 'Generazione file .xlsx');
+    const buf=await wb.xlsx.writeBuffer();
+    const blob=new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    const ds=new Date().toISOString().slice(0,10);
+    a.href=url; a.download=`GoogleFit_${ds}_${currentDays}giorni.xlsx`;
+    document.body.appendChild(a); a.click();
+    document.body.removeChild(a); URL.revokeObjectURL(url);
+    showToastDone('✅ Export completato!', `GoogleFit_${ds}_${currentDays}giorni.xlsx`);
+  } catch(e) {
+    console.error('Export error:', e);
+    showToastDone('❌ Errore export', e.message||'Riprova');
+  }
+  document.getElementById('export-btn').disabled = false;
+}
+
+function showToast(title, sub) {
+  const t=document.getElementById('export-toast');
+  document.getElementById('toast-title').textContent=title;
+  document.getElementById('toast-sub').textContent=sub;
+  document.getElementById('toast-spinner').className='toast-spinner';
+  document.getElementById('toast-spinner').textContent='';
+  t.classList.add('show');
+}
+function showToastDone(title, sub) {
+  document.getElementById('toast-title').textContent=title;
+  document.getElementById('toast-sub').textContent=sub;
+  const sp=document.getElementById('toast-spinner');
+  sp.className='toast-spinner done'; sp.textContent='✓';
+  sp.style.cssText='width:22px;height:22px;display:flex;align-items:center;justify-content:center;color:var(--accent);font-size:1rem;border:none;animation:none;';
+  setTimeout(()=>{ document.getElementById('export-toast').classList.remove('show'); },3500);
+}
+
+function showError(msg) {
+  const el = document.getElementById('error-msg');
+  el.textContent = msg;
+  el.style.display = 'block';
+  document.getElementById('signin-btn').disabled = false;
+}
+
+function showLoading(msg) {
+  document.getElementById('loader-text').textContent = msg;
+  document.getElementById('loading-overlay').style.display = 'flex';
+}
+
+function hideLoading() {
+  document.getElementById('loading-overlay').style.display = 'none';
+}
+
+// ─────────────────── INIT ───────────────────
+window.addEventListener('DOMContentLoaded', () => {
+  const saved = localStorage.getItem('fit_client_id');
+  if (saved) document.getElementById('client-id-input').value = saved;
+});
+</script>
+</body>
+</html>
