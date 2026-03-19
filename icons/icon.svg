@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192">
+  <rect width="192" height="192" rx="40" fill="#080d14"/>
+  <defs>
+    <linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00e5b0"/>
+      <stop offset="100%" stop-color="#00aaff"/>
+    </linearGradient>
+  </defs>
+  <!-- Heart shape -->
+  <path d="M96 140 C96 140 44 104 44 68 C44 50 58 38 76 38 C86 38 94 44 96 50 C98 44 106 38 116 38 C134 38 148 50 148 68 C148 104 96 140 96 140Z" fill="url(#g)"/>
+  <!-- Activity line -->
+  <polyline points="30,155 55,155 65,130 80,175 95,145 110,155 125,140 140,155 165,155" fill="none" stroke="#00e5b0" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
